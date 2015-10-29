@@ -54,6 +54,7 @@ public class main {
         double ymin = 45.1;
         double ymax = 45.2;
         int srid = 4326;
+        int newSrid = 2154;
         
         HashMap<String, Color> colors = new HashMap();
         colors.put("motorway", Color.decode("0x23B0DB"));
@@ -80,10 +81,10 @@ public class main {
         lineWidths.put("cycleway", 1);
         
         String query = 
-                "SELECT tags->'highway', ST_Intersection(w.linestring, ST_MakeEnvelope(?, ?, ?, ?, ?)) "
+                "SELECT tags->'highway', ST_Intersection(ST_Transform(w.linestring, ?), ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, ?), ?)) "
                 + "FROM ways w "
                 + "WHERE tags->'highway' <> '' "//"WHERE tags ? 'highway' "
-                + "AND ST_Intersects(w.linestring, ST_MakeEnvelope(?, ?, ?, ?, ?))"; 
+                + "AND ST_Intersects(ST_Transform(w.linestring, ?), ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, ?), ?))"; 
         
         // Create the map : 
         MapPanel map = new MapPanel(5.758102, 45.187485, 1);
@@ -94,17 +95,22 @@ public class main {
         
         // Ask the query to find the roads and paths in the area : 
         PreparedStatement stmt = conn.prepareStatement(query);
-        stmt.setDouble(1, xmin);
-        stmt.setDouble(2, ymin);
-        stmt.setDouble(3, xmax);
-        stmt.setDouble(4, ymax);
-        stmt.setInt(5, srid);
+        stmt.setInt(1, newSrid);
+        stmt.setDouble(2, xmin);
+        stmt.setDouble(3, ymin);
+        stmt.setDouble(4, xmax);
+        stmt.setDouble(5, ymax);
+        stmt.setInt(6, srid);
+        stmt.setInt(7, newSrid);
         //stmt.setString(6, "?");
-        stmt.setDouble(6, xmin);
-        stmt.setDouble(7, ymin);
-        stmt.setDouble(8, xmax);
-        stmt.setDouble(9, ymax);
-        stmt.setInt(10, srid);
+        stmt.setInt(8, newSrid);
+        stmt.setDouble(9, xmin);
+        stmt.setDouble(10, ymin);
+        stmt.setDouble(11, xmax);
+        stmt.setDouble(12, ymax);
+        stmt.setInt(13, srid);
+        stmt.setInt(14, newSrid);
+
         // Print the roads : 
         ResultSet res = stmt.executeQuery();
         System.out.println("Loading data from database (may take 30secs) ...");
@@ -115,8 +121,12 @@ public class main {
             // Extract PostGis LineString and create GeoExplorer Linestring from it
             PGgeometry geom = (PGgeometry)res.getObject(2); 
             if(geom.getGeoType() == Geometry.LINESTRING) { 
-                Color color = colors.getOrDefault(pathType, Color.black);
-                Integer lineWidth = lineWidths.getOrDefault(pathType, 1);
+                Color color = colors.get(pathType);
+                if(color == null)
+                	color = Color.black;
+                Integer lineWidth = lineWidths.get(pathType);
+                if(lineWidth == null)
+                	lineWidth = 1;
                 lineGE = new geoexplorer.gui.LineString(color, lineWidth);
                 LineString linePG = (LineString)geom.getGeometry();
                 
