@@ -7,8 +7,10 @@ import java.sql.SQLException;
 import database.Utils;
 import geoexplorer.gui.GeoMainFrame;
 import geoexplorer.gui.MapPanel;
+import java.awt.Color;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
+import java.util.HashMap;
 import org.postgis.Geometry;
 import org.postgis.LineString;
 import org.postgis.PGgeometry;
@@ -44,7 +46,7 @@ public class main {
     }
     
     // TODO : Split the code in objects and functions
-    // TODO : Color the roads in different colors given the value of tags->'highway'
+    // TODO [DONE] : Color the roads in different colors given the value of tags->'highway'
     // TODO : Change the SRID for a conic one (more adapted to France)
     public static void question10a() throws SQLException{
         double xmin = 5.7;
@@ -52,6 +54,31 @@ public class main {
         double ymin = 45.1;
         double ymax = 45.2;
         int srid = 4326;
+        
+        HashMap<String, Color> colors = new HashMap();
+        colors.put("motorway", Color.decode("0x23B0DB"));
+        colors.put("motorway_link", Color.decode("0x23B0DB"));
+        colors.put("tunk", Color.decode("0xA7DB23"));
+        colors.put("trunk_link", Color.decode("0xA7DB23")); 
+        colors.put("primary", Color.decode("0xDB234B"));
+        colors.put("primary_link", Color.decode("0xDB234B"));
+        colors.put("secondary", Color.decode("0xDB7623"));
+        colors.put("secondary_link", Color.decode("0xDB7623"));
+        colors.put("residential", Color.decode("0x8C8C8C"));
+        colors.put("cycleway", Color.decode("0xD1CF97"));
+        colors.put("path", Color.decode("0xBF9F5A"));
+        
+        HashMap<String, Integer> lineWidths = new HashMap();
+        lineWidths.put("motorway", 2);
+        lineWidths.put("motorway_link", 2);
+        lineWidths.put("tunk", 2);
+        lineWidths.put("trunk_link", 2); 
+        lineWidths.put("primary", 2);
+        lineWidths.put("primary_link", 1);
+        lineWidths.put("secondary", 2);
+        lineWidths.put("secondary_link", 1);
+        lineWidths.put("cycleway", 1);
+        
         String query = 
                 "SELECT tags->'highway', ST_Intersection(w.linestring, ST_MakeEnvelope(?, ?, ?, ?, ?)) "
                 + "FROM ways w "
@@ -88,13 +115,16 @@ public class main {
             // Extract PostGis LineString and create GeoExplorer Linestring from it
             PGgeometry geom = (PGgeometry)res.getObject(2); 
             if(geom.getGeoType() == Geometry.LINESTRING) { 
-                lineGE = new geoexplorer.gui.LineString();
+                Color color = colors.getOrDefault(pathType, Color.black);
+                Integer lineWidth = lineWidths.getOrDefault(pathType, 1);
+                lineGE = new geoexplorer.gui.LineString(color, lineWidth);
                 LineString linePG = (LineString)geom.getGeometry();
+                
                 Point[] pts = linePG.getPoints();
                 for(int i = 0; i < pts.length; ++i){
                     //System.out.println("Point: " + pts[i]);
                     lineGE.addPoint(new geoexplorer.gui.Point(pts[i].getX(), pts[i].getY()));
-              } 
+                } 
             }
             
             // Print the GeoExplorer line : 

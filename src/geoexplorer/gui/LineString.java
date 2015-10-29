@@ -1,5 +1,6 @@
 package geoexplorer.gui;
 
+import java.awt.BasicStroke;
 import java.awt.Color;
 import java.awt.Graphics2D;
 import java.util.Iterator;
@@ -16,8 +17,18 @@ public class LineString implements GraphicalPrimitive, Iterable<Point> {
      * The drawing color of the line string.
      */
     public Color drawColor;
+    public int drawLineWidth;
 
     private List<Point> points;
+        /**
+     * Builds and initializes a line string with no point at the beginning.
+     * @param dc the drawing color.
+     * @param dlw the drawing line width.
+     */
+    public LineString(Color dc, int dlw) {
+        this(dc);
+        this.drawLineWidth = dlw;
+    }
     
     /**
      * Builds and initializes a line string with no point at the beginning.
@@ -25,6 +36,7 @@ public class LineString implements GraphicalPrimitive, Iterable<Point> {
      */
     public LineString(Color dc) {
         this.drawColor = dc;
+        this.drawLineWidth = 1;
         this.points = new LinkedList<>();
     }
     
@@ -39,6 +51,7 @@ public class LineString implements GraphicalPrimitive, Iterable<Point> {
     public void draw(Graphics2D g2d, CoordinateConverter converter) {
         Color oldDC = g2d.getColor();
         g2d.setColor(this.drawColor);
+        g2d.setStroke(new BasicStroke(this.drawLineWidth));
         Iterator<Point> iter = this.points.iterator();
         Point p1 = iter.next();        
         while (iter.hasNext()) {
