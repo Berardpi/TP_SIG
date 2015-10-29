@@ -112,9 +112,15 @@ public class MapPanel extends JPanel {
     }
     
     private void drawPrimitives(Graphics2D g2d) {
-        for (GraphicalPrimitive p: this.primitives) {
-            p.draw(g2d, this.converter);
+        Iterator it;
+        for(it = this.primitives.iterator(); it.hasNext();){
+            GraphicalPrimitive p = (GraphicalPrimitive) it.next();
+            if(p != null)
+                p.draw(g2d, this.converter);
         }
+        /* for (GraphicalPrimitive p: this.primitives) {
+            p.draw(g2d, this.converter);
+        } */
     }
     
     /**
@@ -127,7 +133,11 @@ public class MapPanel extends JPanel {
         Iterator<GraphicalPrimitive> iter = this.primitives.iterator();
         BoundingBox b = iter.next().getBoundingBox();
         while(iter.hasNext()) {
-            b.extendBoundingBox(iter.next().getBoundingBox());
+            if(b != null){
+                GraphicalPrimitive next = iter.next();
+                if(next != null)
+                    b.extendBoundingBox(next.getBoundingBox());
+            }
         }
         this.centerX = (b.xMin + b.xMax) / 2;
         this.centerY = (b.yMin + b.yMax) / 2;
