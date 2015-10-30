@@ -13,8 +13,11 @@ import java.awt.Graphics2D;
 import java.util.HashMap;
 import org.postgis.Geometry;
 import org.postgis.LineString;
+import org.postgis.LinearRing;
+import org.postgis.MultiPolygon;
 import org.postgis.PGgeometry;
 import org.postgis.Point;
+import org.postgis.Polygon;
 
 public class main {
 
@@ -22,7 +25,8 @@ public class main {
         System.out.println("Question 9:");
         //question9("Dom__ne _niversit%");
         System.out.println("Question 10:");
-        question10a();
+        //question10a();
+        question11a();
     }
 
     public static void question8() {
@@ -165,6 +169,72 @@ public class main {
         }
         */
 
+    }
+    
+    public static void question11a() throws SQLException{
+         int srid = 4326;
+         int newSrid = 2154;
+         String type = "bakery";
+         
+         String query = 
+                 "SELECT q.the_geom, COUNT(*) as nb"
+                 + " FROM nodes n"
+                 + " INNER JOIN quartier q"
+                 + " ON ST_Intersects(ST_Transform(n.geom,?), ST_Transform(q.the_geom,?))"
+                 + " WHERE  n.tags->'shop' = ?"
+                 + " GROUP BY q.the_geom"
+                 + " ORDER BY nb";
+
+         Color[] colors = new Color[12];
+         for(int i=0; i<12;i++){
+        	 colors[i]= new Color(255, i*255/12,0);
+         }
+         
+         // Create the map : 
+         MapPanel map = new MapPanel(5.758102, 45.187485, 1);
+         GeoMainFrame frame = new GeoMainFrame("Map", map);
+         
+         // Connect to the database :
+         Connection conn = Utils.getConnection();
+         
+         // Ask the query to find the roads and paths in the area : 
+         PreparedStatement stmt = conn.prepareStatement(query);
+         stmt.setInt(1, newSrid);
+         stmt.setInt(2, newSrid);
+         stmt.setString(3, type);
+
+         // Print the roads :
+         System.out.println("Loading data from database (may take 30secs) ...");
+         ResultSet res = stmt.executeQuery();
+         while (res.next()) {
+             geoexplorer.gui.Polygon polygonGE = null;
+                         
+             // Extract PostGis LineString and create GeoExplorer Linestring from it
+             PGgeometry geom = (PGgeometry)res.getObject(1); 
+             int nbBakery = res.getInt(2);
+             if(geom.getGeoType() == Geometry.MULTIPOLYGON) { 
+            	 
+            	 polygonGE = new geoexplorer.gui.Polygon(Color.black, colors[nbBakery]);
+            	 
+                 MultiPolygon multiPolygonePG = (MultiPolygon)geom.getGeometry();
+                 Polygon[] polygons = multiPolygonePG.getPolygons();
+                 for( int i = 0; i < multiPolygonePG.numPolygons(); i++) { 
+                     for( int p = 0; p < polygons[i].numPoints(); p++ ) { 
+                       Point pt = polygons[i].getPoint(p); 
+                       polygonGE.addPoint(new geoexplorer.gui.Point(pt.getX(), pt.getY()));
+                     } 
+                     
+                     // Print the GeoExplorer line : 
+                     map.addPrimitive(polygonGE);
+                   } 
+             }
+         }
+         System.out.println("Data loaded, and map printed.");
+         map.autoAdjust();
+
+         // Close the database :
+         System.out.println("Closing connection");
+         Utils.closeConnection();
     }
 
 }
