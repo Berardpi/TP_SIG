@@ -22,11 +22,21 @@ import org.postgis.Polygon;
 public class main {
 
     public static void main(String[] args) throws SQLException {
+        double x = 5.75;
+        double y = 45.15;
+        double width = 0.05;
+
+        // Create the map (in GeoExplorer GUI) : 
+        MapPanel map = new MapPanel(x, y, width);
+        GeoMainFrame frame = new GeoMainFrame("Map", map);
+        
         System.out.println("Question 9:");
         //question9("Dom__ne _niversit%");
         System.out.println("Question 10:");
-        //question10a();
-        question11a();
+        question10b(map, x, y, width, 2154);
+        question10a(map, x, y, width, 2154);
+        System.out.println("Question 11:");
+        //question11a();
     }
 
     public static void question8() {
@@ -52,92 +62,56 @@ public class main {
     // TODO : Split the code in objects and functions
     // TODO [DONE] : Color the roads in different colors given the value of tags->'highway'
     // TODO : Change the SRID for a conic one (more adapted to France)
-    public static void question10a() throws SQLException{
-        double xmin = 5.7;
-        double xmax = 5.8;
-        double ymin = 45.1;
-        double ymax = 45.2;
-        int srid = 4326;
-        int newSrid = 2154;
+    public static void question10a(MapPanel map, double x, double y, double width, int srid) throws SQLException{
         
-        HashMap<String, Color> colors = new HashMap();
-        colors.put("motorway", Color.decode("0x23B0DB"));
-        colors.put("motorway_link", Color.decode("0x23B0DB"));
-        colors.put("tunk", Color.decode("0xA7DB23"));
-        colors.put("trunk_link", Color.decode("0xA7DB23")); 
-        colors.put("primary", Color.decode("0xDB234B"));
-        colors.put("primary_link", Color.decode("0xDB234B"));
-        colors.put("secondary", Color.decode("0xDB7623"));
-        colors.put("secondary_link", Color.decode("0xDB7623"));
-        colors.put("residential", Color.decode("0x8C8C8C"));
-        colors.put("cycleway", Color.decode("0xD1CF97"));
-        colors.put("path", Color.decode("0xBF9F5A"));
+        // Connect to the database :
+        Connection conn = Utils.getConnection();
         
-        HashMap<String, Integer> lineWidths = new HashMap();
-        lineWidths.put("motorway", 2);
-        lineWidths.put("motorway_link", 2);
-        lineWidths.put("tunk", 2);
-        lineWidths.put("trunk_link", 2); 
-        lineWidths.put("primary", 2);
-        lineWidths.put("primary_link", 1);
-        lineWidths.put("secondary", 2);
-        lineWidths.put("secondary_link", 1);
-        lineWidths.put("cycleway", 1);
-        
+        // Query to find the roads and paths in the area :
         String query = 
                 "SELECT tags->'highway', ST_Intersection(ST_Transform(w.linestring, ?), ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, ?), ?)) "
                 + "FROM ways w "
                 + "WHERE tags->'highway' <> '' "//"WHERE tags ? 'highway' "
                 + "AND ST_Intersects(ST_Transform(w.linestring, ?), ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, ?), ?))"; 
         
-        // Create the map : 
-        MapPanel map = new MapPanel(5.758102, 45.187485, 1);
-        GeoMainFrame frame = new GeoMainFrame("Map", map);
-        
-        // Connect to the database :
-        Connection conn = Utils.getConnection();
-        
-        // Ask the query to find the roads and paths in the area : 
+        // Prepare the query :
         PreparedStatement stmt = conn.prepareStatement(query);
-        stmt.setInt(1, newSrid);
-        stmt.setDouble(2, xmin);
-        stmt.setDouble(3, ymin);
-        stmt.setDouble(4, xmax);
-        stmt.setDouble(5, ymax);
-        stmt.setInt(6, srid);
-        stmt.setInt(7, newSrid);
-        //stmt.setString(6, "?");
-        stmt.setInt(8, newSrid);
-        stmt.setDouble(9, xmin);
-        stmt.setDouble(10, ymin);
-        stmt.setDouble(11, xmax);
-        stmt.setDouble(12, ymax);
-        stmt.setInt(13, srid);
-        stmt.setInt(14, newSrid);
+        int baseSrid = 4326;
 
-        // Print the roads : 
+        stmt.setInt(1, srid);
+        stmt.setDouble(2, x - width);
+        stmt.setDouble(3, y - width);
+        stmt.setDouble(4, x + width);
+        stmt.setDouble(5, y + width);
+        stmt.setInt(6, baseSrid);
+        stmt.setInt(7, srid);
+        stmt.setInt(8, srid);
+        stmt.setDouble(9, x - width);
+        stmt.setDouble(10, y - width);
+        stmt.setDouble(11, x + width);
+        stmt.setDouble(12, y + width);
+        stmt.setInt(13, baseSrid);
+        stmt.setInt(14, srid);
+
+        // Execute the query & Print the roads : 
         ResultSet res = stmt.executeQuery();
         System.out.println("Loading data from database (may take 30secs) ...");
         while (res.next()) {
-            String pathType = res.getString(1);
             geoexplorer.gui.LineString lineGE = null;
                         
-            // Extract PostGis LineString and create GeoExplorer Linestring from it
+            // Get result of SQL request for current path :
+            String pathType = res.getString(1);
             PGgeometry geom = (PGgeometry)res.getObject(2); 
+            
+            // Extract PostGis LineString and create GeoExplorer Linestring from it
             if(geom.getGeoType() == Geometry.LINESTRING) { 
-                Color color = colors.get(pathType);
-                if(color == null)
-                	color = Color.black;
-                Integer lineWidth = lineWidths.get(pathType);
-                if(lineWidth == null)
-                	lineWidth = 1;
-                lineGE = new geoexplorer.gui.LineString(color, lineWidth);
+                lineGE = new geoexplorer.gui.LineString(
+                        MapLegend.getColor(pathType), 
+                        MapLegend.getLineStrength(pathType));
                 LineString linePG = (LineString)geom.getGeometry();
                 
-                Point[] pts = linePG.getPoints();
-                for(int i = 0; i < pts.length; ++i){
-                    //System.out.println("Point: " + pts[i]);
-                    lineGE.addPoint(new geoexplorer.gui.Point(pts[i].getX(), pts[i].getY()));
+                for(Point p : linePG.getPoints()){
+                    lineGE.addPoint(new geoexplorer.gui.Point(p.getX(), p.getY()));
                 } 
             }
             
@@ -152,22 +126,66 @@ public class main {
         Utils.closeConnection();
     }
     
-    public static void question10b(){
-        /*
-        PGgeometry geom = (PGgeometry)r.getObject(1); 
-        if( geom.getGeoType() == Geometry.POLYGON ) { 
-          Polygon pl = (Polygon)geom.getGeometry(); 
-          for( int r = 0; r < pl.numRings(); r++) { 
-            LinearRing rng = pl.getRing(r); 
-            System.out.println("Ring: " + r); 
-            for( int p = 0; p < rng.numPoints(); p++ ) { 
-              Point pt = rng.getPoint(p); 
-              System.out.println("Point: " + p);
-              System.out.println(pt.toString()); 
-            } 
-          } 
+    public static void question10b(MapPanel map, double x, double y, double width, int srid) throws SQLException{
+        
+        // Connect to the database :
+        Connection conn = Utils.getConnection();
+        
+        // Query to find the roads and paths in the area :
+        String query = 
+                "SELECT ST_Intersection(ST_Transform(w.linestring, ?), ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, ?), ?)) "
+                + "FROM ways w "
+                + "WHERE tags->'building' = 'yes' "//"WHERE tags ? 'highway' "
+                + "AND ST_Intersects(ST_Transform(w.linestring, ?), ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, ?), ?))"; 
+        
+        // Prepare the query :
+        PreparedStatement stmt = conn.prepareStatement(query);
+        int baseSrid = 4326;
+
+        stmt.setInt(1, srid);
+        stmt.setDouble(2, x - width);
+        stmt.setDouble(3, y - width);
+        stmt.setDouble(4, x + width);
+        stmt.setDouble(5, y + width);
+        stmt.setInt(6, baseSrid);
+        stmt.setInt(7, srid);
+        stmt.setInt(8, srid);
+        stmt.setDouble(9, x - width);
+        stmt.setDouble(10, y - width);
+        stmt.setDouble(11, x + width);
+        stmt.setDouble(12, y + width);
+        stmt.setInt(13, baseSrid);
+        stmt.setInt(14, srid);
+
+        // Execute the query & Print the roads : 
+        ResultSet res = stmt.executeQuery();
+        System.out.println("Loading data from database (may take 30secs) ...");
+        while (res.next()) {
+            geoexplorer.gui.LineString lineGE = null;
+
+            // Get result of SQL request for current path :
+            PGgeometry geom = (PGgeometry)res.getObject(1); 
+                        
+            // Extract PostGis LineString and create GeoExplorer Linestring from it
+            if(geom.getGeoType() == Geometry.LINESTRING) { 
+                lineGE = new geoexplorer.gui.LineString(Color.decode("0x5E5E5E"));
+                LineString linePG = (LineString)geom.getGeometry();
+                
+                for(Point p : linePG.getPoints()){
+                    lineGE.addPoint(new geoexplorer.gui.Point(p.getX(), p.getY()));
+                } 
+            }
+            
+            // Print the GeoExplorer line : 
+            map.addPrimitive(lineGE);
         }
-        */
+        System.out.println("Data loaded, and map printed.");
+        map.autoAdjust();
+
+        // Close the database :
+        System.out.println("Closing connection");
+        Utils.closeConnection();
+
 
     }
     

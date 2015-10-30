@@ -131,22 +131,25 @@ public class MapPanel extends JPanel {
         Logger.getLogger(GeoMainFrame.class.getName()).log(Level.INFO, "Auto-adjusting panel...");
         if (this.primitives.isEmpty()) return;
         Iterator<GraphicalPrimitive> iter = this.primitives.iterator();
-        BoundingBox b = iter.next().getBoundingBox();
-        while(iter.hasNext()) {
-            if(b != null){
-                GraphicalPrimitive next = iter.next();
-                if(next != null)
-                    b.extendBoundingBox(next.getBoundingBox());
+        GraphicalPrimitive nextPrimitive = iter.next();
+        if(nextPrimitive != null){
+            BoundingBox b = nextPrimitive.getBoundingBox();
+            while(iter.hasNext()) {
+                if(b != null){
+                    GraphicalPrimitive next = iter.next();
+                    if(next != null)
+                        b.extendBoundingBox(next.getBoundingBox());
+                }
             }
+            this.centerX = (b.xMin + b.xMax) / 2;
+            this.centerY = (b.yMin + b.yMax) / 2;
+            if (this.getWidth() < this.getHeight() * b.getWidth() / b.getHeight()) { // needs to use width as the main adjustment variable
+                this.mapWidth = b.xMax - b.xMin;
+            } else {
+                this.mapWidth = (b.yMax - b.yMin) * this.getWidth() / this.getHeight();
+            }
+            this.repaint();
         }
-        this.centerX = (b.xMin + b.xMax) / 2;
-        this.centerY = (b.yMin + b.yMax) / 2;
-        if (this.getWidth() < this.getHeight() * b.getWidth() / b.getHeight()) { // needs to use width as the main adjustment variable
-            this.mapWidth = b.xMax - b.xMin;
-        } else {
-            this.mapWidth = (b.yMax - b.yMin) * this.getWidth() / this.getHeight();
-        }
-        this.repaint();
     }
    
     
