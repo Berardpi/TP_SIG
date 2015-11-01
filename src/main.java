@@ -35,7 +35,7 @@ public class main {
     	System.out.println("Bienvenue !");
     	Utils.getConnection();
     	
-    	System.out.println("Souhaitez vous accedez à l'affichage textuelle (question 9) [t] ou à l'affichage graphiques (questions 10 et 11) [g] ?");
+    	System.out.println("Souhaitez vous accedez à l'affichage textuel (question 9) [t] ou à l'affichage graphiques (questions 10 et 11) [g] ?");
     	answer = reader.next();
     	
     	if (answer.equalsIgnoreCase("t")) {
