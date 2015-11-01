@@ -41,6 +41,7 @@ public class Utils {
 	} catch (ClassNotFoundException e) {
             Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, "Error while loading postgis extensions: {0}", e.toString());
 	}
+	connection = conn;
 	return conn;	
     }
     
@@ -48,6 +49,7 @@ public class Utils {
         if (connection != null) {
             try {
                 connection.close();
+                Logger.getLogger(Utils.class.getName()).log(Level.INFO, "Connection closed.");
             } catch (SQLException ex) {
                 Logger.getLogger(Utils.class.getName()).log(Level.SEVERE, null, ex);
             }
