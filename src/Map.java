@@ -131,7 +131,7 @@ public class Map {
 		String type = "bakery";
 
 		String query = 
-				"SELECT q.the_geom, COUNT(*) as nb"
+				"SELECT ST_Intersection(ST_Transform(q.the_geom,?), ST_Transform(ST_MakeEnvelope(?, ?, ?, ?, ?), ?)), COUNT(*) as nb"
 						+ " FROM nodes n"
 						+ " INNER JOIN quartier q"
 						+ " ON ST_Intersects(ST_Transform(n.geom,?), ST_Transform(q.the_geom,?))"
@@ -146,9 +146,16 @@ public class Map {
 
 		// Ask the query to find the roads and paths in the area : 
 		PreparedStatement stmt = conn.prepareStatement(query);
-		stmt.setInt(1, srid);
-		stmt.setInt(2, srid);
-		stmt.setString(3, type);
+                stmt.setInt(1, srid);
+		stmt.setDouble(2, x - width);
+		stmt.setDouble(3, y - width);
+		stmt.setDouble(4, x + width);
+		stmt.setDouble(5, y + width);
+		stmt.setInt(6, baseSrid);
+		stmt.setInt(7, srid);
+		stmt.setInt(8, srid);
+		stmt.setInt(9, srid);
+		stmt.setString(10, type);
 
 		// Print the roads :
 		System.out.println("Loading data from database (may take 30secs) ...");
