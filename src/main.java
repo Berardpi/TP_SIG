@@ -15,6 +15,7 @@ import java.awt.Graphics2D;
 import java.util.HashSet;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
@@ -51,9 +52,9 @@ public class main {
     		Question.question9(answer);
     	} else if (answer.equalsIgnoreCase("g")) {
     		Map map = new Map(5.75, 45.15, 0.05, 2154);
-    		HashMap<String, String> displayable = new HashMap<String, String>();
-    		displayable.put("10a", "routes autour de Grenoble");
+    		LinkedHashMap<String, String> displayable = new LinkedHashMap<String, String>();
     		displayable.put("10b", "batiments autour de Grenoble");
+    		displayable.put("10a", "routes autour de Grenoble");
     		displayable.put("11a", "boulangeries de Grenoble");
     		displayable.put("11b", "nuisances sonores autour de Grenoble");
     		System.out.println("Affichage graphique");
